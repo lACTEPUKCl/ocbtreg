@@ -1,12 +1,10 @@
 import {
   Client,
   GatewayIntentBits,
+  Partials,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
   EmbedBuilder,
   AttachmentBuilder,
   Collection,
@@ -21,18 +19,20 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
   ],
+  partials: [Partials.Channel],
 });
+
 client.commands = new Collection();
 const commands = await getCommands();
-
 for (const command of commands) {
-  if ("data" in command && "execute" in command)
+  if ("data" in command && "execute" in command) {
     client.commands.set(command.data.name, command);
-  else logger.verbose("discord", 1, `The command missing! in index.js`);
+  }
 }
 
-client.on("ready", async () => {
+client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
@@ -42,28 +42,22 @@ client.on("messageCreate", (message) => {
     message.channel.id === "1305214122727571578"
   ) {
     const attachment = new AttachmentBuilder("./img/reg.png");
-
     const embed = new EmbedBuilder()
-      .setTitle("**Регистрация на OCBT**")
+      .setTitle("Регистрация на OCBT")
       .setDescription(
-        "**Подача заявки на участие своей команды**\n" +
-          'нажмите на кнопку ниже ✅ **"Регистрация"** и заполните анкету ㅤㅤㅤㅤㅤㅤㅤ\n' +
-          "для заполнения:\n```\n" +
-          "- Название команды:\n" +
-          "- Логотип команды:\n" +
-          "- Представитель команды:\n" +
-          "- SteamID64 представителя команды:\n" +
-          "- Человек для связи:\n" +
-          "```\n" +
-          "**Подача заявки на получение кастера** \n" +
-          'нажмите на кнопку ниже ☑️ **"Каcтер"** и заполните анкету \n\n' +
-          "Анкета для заполнения:\n```\n" +
-          "- Ваш SteamID64:\n" +
-          "- Ссылка на ваш канал:\n" +
-          "```"
+        "Подача заявки на участие команды\n" +
+          "Нажмите на кнопку ниже «Регистрация» и заполните форму:\n" +
+          "1) Название команды\n" +
+          "2) Логотип (файл или ссылка)\n" +
+          "3) Представитель команды\n" +
+          "4) SteamID64 представителя\n" +
+          "5) Человек для связи\n\n" +
+          "Подача заявки на кастера\n" +
+          "Нажмите на кнопку «Кастер» и заполните форму:\n" +
+          "1) Ваш SteamID64\n" +
+          "2) Ссылка на ваш канал"
       )
       .setColor(0x7ebca4);
-
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("register_team")
@@ -72,286 +66,367 @@ client.on("messageCreate", (message) => {
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId("register_caster")
-        .setLabel("Каcтер")
+        .setLabel("Кастер")
         .setEmoji("☑️")
         .setStyle(ButtonStyle.Primary)
     );
-
-    message.channel
-      .send({
-        files: [attachment],
-      })
-      .then(() => {
-        message.channel.send({
-          content: "\n",
-          embeds: [embed],
-          components: [row],
-        });
+    message.channel.send({ files: [attachment] }).then(() => {
+      message.channel.send({
+        embeds: [embed],
+        components: [row],
       });
+    });
+  }
+  if (
+    message.content === "!setup" &&
+    message.channel.id === "1305214082919698482"
+  ) {
+    const attachment = new AttachmentBuilder("./img/info.png");
+    const importantInfoEmbed = new EmbedBuilder()
+      .setTitle("Важная информация")
+      .setDescription(
+        "🏆 Призовой фонд:\n\n" +
+          "1 место — 10,000 рублей\n" +
+          "2 место — 5,000 рублей\n" +
+          "3 место — VIP на сервер\n\n" +
+          "- Команда должна иметь единый тег\n" +
+          "- Не менее 10 участников с одним тегом\n" +
+          "- Сетка турнира зависит от количества команд\n" +
+          "- +1-2 человека на замену\n" +
+          "- Переигровка при вылете 3+ человек\n" +
+          "- Доп. раунд при равенстве тикетов\n" +
+          "- Перенос игры при критическом баге\n" +
+          "- Минимум 8 команд для старта"
+      )
+      .setColor(0x43b581);
+    const navigationEmbed = new EmbedBuilder()
+      .setTitle("Навигация")
+      .setDescription(
+        "- <#1305213973934637098> Актуальные новости\n" +
+          "- <#1305214007359176744> Правила\n" +
+          "- <#1305214122727571578> Подача заявок\n" +
+          "- <#1305214160983953458> Зарегистрированные команды\n" +
+          "- <#1305214220844924959> Общение участников\n" +
+          "- <#1305214678867247234> Расписание и сетка"
+      )
+      .setColor(0x43b581);
+    message.channel.send({ files: [attachment] }).then(() => {
+      message.channel.send({
+        embeds: [importantInfoEmbed, navigationEmbed],
+      });
+    });
+  }
+  if (
+    message.content === "!setup" &&
+    message.channel.id === "1305214007359176744"
+  ) {
+    const attachment = new AttachmentBuilder("./img/rules.png");
+    const generalRulesEmbed = new EmbedBuilder()
+      .setTitle("Общие правила")
+      .setDescription(
+        "1. Запрещены любые оскорбления (дисквалификация игрока)\n" +
+          "2. Запрещен руин/подстава/договорные матчи (дисквалификация команды)\n" +
+          "3. Запрещено использовать баги (дисквалификация от матча)\n" +
+          "4. Опоздание или недобор игроков 20 минут (дисквалификация)\n" +
+          "5. Запрещены читы, эксплойты, ПО (дисквалификация, пермабан)"
+      )
+      .setColor(0x9d2235);
+    const casterRulesEmbed = new EmbedBuilder()
+      .setTitle("Правила для кастеров")
+      .setDescription(
+        "1. Задержка на трансляции не менее 3 минут\n" +
+          "2. Название отряда: «камера, стрим, ютуб» и т.д.\n" +
+          "3. Отряд должен быть закрыт\n" +
+          "4. Указывать в описании канала турнир OCBT"
+      )
+      .setColor(0x9d2235);
+    const additionEmbed = new EmbedBuilder()
+      .setTitle("Дополнение")
+      .setDescription(
+        "При любом инциденте, не описанном в правилах, но дающем нечестное преимущество, решение принимают организаторы."
+      )
+      .setColor(0x9d2235);
+    message.channel.send({ files: [attachment] }).then(() => {
+      message.channel.send({
+        embeds: [generalRulesEmbed, casterRulesEmbed, additionEmbed],
+      });
+    });
   }
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-  const command = interaction.client.commands.get(interaction.commandName);
   if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
     try {
       await command.execute(interaction);
     } catch (error) {
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
-          content: "There was an error while executing this command!",
+          content: "Произошла ошибка при выполнении команды.",
           ephemeral: true,
         });
       } else {
         await interaction.reply({
-          content: "There was an error while executing this command!",
+          content: "Произошла ошибка при выполнении команды.",
           ephemeral: true,
         });
       }
     }
   } else if (interaction.isButton()) {
     if (interaction.customId === "register_team") {
-      showTeamRegistrationModal(interaction);
+      try {
+        await interaction.reply({
+          content: "Проверьте личные сообщения для регистрации команды.",
+          ephemeral: true,
+        });
+        registerTeam(interaction);
+      } catch {}
     } else if (interaction.customId === "register_caster") {
-      showCasterRegistrationModal(interaction);
-    }
-  } else if (interaction.isModalSubmit()) {
-    if (interaction.customId === "team_registration") {
-      await handleTeamRegistration(interaction);
-    } else if (interaction.customId === "caster_registration") {
-      await handleCasterRegistration(interaction);
+      try {
+        await interaction.reply({
+          content: "Проверьте личные сообщения для регистрации кастера.",
+          ephemeral: true,
+        });
+        registerCaster(interaction);
+      } catch {}
     }
   }
 });
 
-function isValidSteamId(steamId) {
-  return /^\d{17}$/.test(steamId);
+async function ask(dm, prompt, validate) {
+  let attempts = 3;
+  while (attempts > 0) {
+    await dm.send(prompt);
+    try {
+      const filter = (m) => !m.author.bot;
+      const collected = await dm.awaitMessages({
+        filter,
+        max: 1,
+        time: 300000,
+        errors: ["time"],
+      });
+      const content = collected.first();
+      if (!content) return null;
+      if (!validate) return content;
+      if (validate(content)) return content;
+      await dm.send("Введены некорректные данные. Повторите ввод.");
+      attempts--;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
-function isValidImageUrl(url) {
-  return /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
+function isValidSteamIdValue(value) {
+  return /^\d{17}$/.test(value.trim());
 }
 
-function showTeamRegistrationModal(interaction) {
-  const modal = new ModalBuilder()
-    .setCustomId("team_registration")
-    .setTitle("Регистрация команды");
-
-  const teamNameInput = new TextInputBuilder()
-    .setCustomId("team_name")
-    .setLabel("Название команды")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  const teamLogoInput = new TextInputBuilder()
-    .setCustomId("team_logo")
-    .setLabel("Лого команды")
-    .setPlaceholder("Ссылка на изображение в png/jpg")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  const representativeInput = new TextInputBuilder()
-    .setCustomId("representative_discord")
-    .setLabel("Представитель команды")
-    .setPlaceholder(
-      "Тот, кто регистрирует команду (не обязательно глава клана)"
-    )
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  const steamIdInput = new TextInputBuilder()
-    .setCustomId("representative_steam")
-    .setLabel("SteamID64")
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder("17 цифр SteamID64 (https://steamid.io/)")
-    .setRequired(true);
-
-  const contactInput = new TextInputBuilder()
-    .setCustomId("contact_discord")
-    .setLabel("Человек для связи")
-    .setPlaceholder("Контактное лицо для связи, если пропадет связь с первым")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(teamNameInput),
-    new ActionRowBuilder().addComponents(teamLogoInput),
-    new ActionRowBuilder().addComponents(representativeInput),
-    new ActionRowBuilder().addComponents(steamIdInput),
-    new ActionRowBuilder().addComponents(contactInput)
-  );
-
-  interaction.showModal(modal);
+function isValidImageUrlValue(value) {
+  return /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(value.trim());
 }
 
-async function handleTeamRegistration(interaction) {
-  const teamLogo = interaction.fields.getTextInputValue("team_logo");
-  const teamName = interaction.fields.getTextInputValue("team_name");
-  const representativeDiscord = interaction.fields.getTextInputValue(
-    "representative_discord"
-  );
-  const representativeSteam = interaction.fields.getTextInputValue(
-    "representative_steam"
-  );
-  const contactDiscord =
-    interaction.fields.getTextInputValue("contact_discord");
-
-  if (!isValidSteamId(representativeSteam)) {
-    await interaction.reply({
-      content: "Ошибка: SteamID должен содержать 17 цифр.",
-      ephemeral: true,
-    });
-    return;
+async function askForImage(dm, prompt) {
+  let attempts = 3;
+  while (attempts > 0) {
+    await dm.send(prompt);
+    try {
+      const filter = (m) => !m.author.bot;
+      const collected = await dm.awaitMessages({
+        filter,
+        max: 1,
+        time: 300000,
+        errors: ["time"],
+      });
+      const msg = collected.first();
+      if (!msg) return null;
+      if (msg.attachments.size > 0) {
+        const file = msg.attachments.first();
+        if (file && file.contentType && file.contentType.startsWith("image/")) {
+          return file.url;
+        }
+        await dm.send("Файл не является изображением. Повторите попытку.");
+      } else {
+        if (isValidImageUrlValue(msg.content)) {
+          return msg.content.trim();
+        }
+        await dm.send(
+          "Ссылка не является корректным изображением. Повторите попытку."
+        );
+      }
+      attempts--;
+    } catch {
+      return null;
+    }
   }
-
-  if (!isValidImageUrl(teamLogo)) {
-    await interaction.reply({
-      content:
-        "Ошибка: Логотип команды должен быть ссылкой на изображение (png, jpg, gif, webp).",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  const userId = interaction.user.id;
-  const member = interaction.guild.members.cache.get(userId);
-  const roleName = "Участник OCBT";
-  const role = interaction.guild.roles.cache.find((r) => r.name === roleName);
-
-  if (role && member) {
-    await member.roles.add(role).catch((error) => {
-      console.error(`Не удалось выдать роль: ${error.message}`);
-    });
-  }
-
-  const embed = new EmbedBuilder()
-    .setColor(0x0099ff)
-    .setTitle("Подтверждение регистрации команды")
-    .setImage(teamLogo)
-    .addFields(
-      { name: "Название команды", value: teamName, inline: true },
-      { name: "Представитель", value: representativeDiscord, inline: true },
-      {
-        name: "SteamID64",
-        value: `[${representativeSteam}](https://steamcommunity.com/profiles/${representativeSteam})`,
-        inline: true,
-      },
-      { name: "Контактное лицо", value: contactDiscord, inline: true },
-      { name: "Отправитель", value: `<@${userId}>`, inline: false }
-    )
-    .setFooter({
-      text: `Отправлено: ${interaction.user.tag}`,
-      iconURL: interaction.user.displayAvatarURL(),
-    });
-
-  const logChannelId = "1305214571912630322";
-  const logChannel = interaction.guild.channels.cache.get(logChannelId);
-
-  if (!logChannel) {
-    console.error(`Канал с ID ${logChannelId} не найден.`);
-    await interaction.reply({
-      content:
-        "Ошибка: Не удалось зарегистрировать команду. Канал логирования отсутствует.",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  await logChannel.send({ embeds: [embed] });
-
-  await interaction.reply({
-    content: "Ваша заявка на участие команды успешно принята!",
-    embeds: [embed],
-    ephemeral: true,
-  });
+  return null;
 }
 
-function showCasterRegistrationModal(interaction) {
-  const modal = new ModalBuilder()
-    .setCustomId("caster_registration")
-    .setTitle("Регистрация кастера");
-
-  const steamIdInput = new TextInputBuilder()
-    .setCustomId("caster_steam_id")
-    .setLabel("Ваш SteamID64")
-    .setPlaceholder("17 цифр SteamID64 (https://steamid.io/)")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  const channelLinkInput = new TextInputBuilder()
-    .setCustomId("caster_channel_link")
-    .setLabel("Ссылка на ваш канал")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true);
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(steamIdInput),
-    new ActionRowBuilder().addComponents(channelLinkInput)
-  );
-
-  interaction.showModal(modal);
+async function registerTeam(interaction) {
+  try {
+    const dm = await interaction.user.createDM();
+    const nameMsg = await ask(
+      dm,
+      "Введите название команды (не более 50 символов):",
+      (m) => m.content.trim().length <= 50
+    );
+    if (!nameMsg) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const teamName = nameMsg.content.trim();
+    const logoUrl = await askForImage(
+      dm,
+      "Отправьте логотип (ссылка или файл):"
+    );
+    if (!logoUrl) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const repMsg = await ask(
+      dm,
+      "Введите Discord представителя команды:",
+      (m) => m.content.trim().length > 0
+    );
+    if (!repMsg) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const representative = repMsg.content.trim();
+    const steamMsg = await ask(
+      dm,
+      "Введите SteamID64 представителя (17 цифр):",
+      (m) => isValidSteamIdValue(m.content)
+    );
+    if (!steamMsg) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const steamId = steamMsg.content.trim();
+    const contactMsg = await ask(
+      dm,
+      "Введите контактное лицо для связи:",
+      (m) => m.content.trim().length > 0
+    );
+    if (!contactMsg) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const contact = contactMsg.content.trim();
+    const userId = interaction.user.id;
+    const member = interaction.guild.members.cache.get(userId);
+    const role = interaction.guild.roles.cache.find(
+      (r) => r.name === "Участник OCBT"
+    );
+    if (role && member) {
+      try {
+        await member.roles.add(role);
+      } catch {}
+    }
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("Подтверждение регистрации команды")
+      .setImage(logoUrl)
+      .addFields(
+        { name: "Название команды", value: teamName, inline: true },
+        { name: "Представитель", value: representative, inline: true },
+        {
+          name: "SteamID64",
+          value: `[${steamId}](https://steamcommunity.com/profiles/${steamId})`,
+          inline: true,
+        },
+        { name: "Контактное лицо", value: contact, inline: true },
+        { name: "Отправитель", value: `<@${userId}>` }
+      )
+      .setFooter({
+        text: `Отправлено: ${interaction.user.tag}`,
+        iconURL: interaction.user.displayAvatarURL(),
+      });
+    const logChannel = interaction.guild.channels.cache.get(
+      "1305214571912630322"
+    );
+    if (!logChannel) {
+      await dm.send(
+        "Ошибка: Канал логирования не найден. Регистрация отменена."
+      );
+      return;
+    }
+    await logChannel.send({ embeds: [embed] });
+    await dm.send("Ваша заявка успешно принята!");
+  } catch {
+    try {
+      await interaction.user.send(
+        "Произошла ошибка или истекло время ожидания. Регистрация прервана."
+      );
+    } catch {}
+  }
 }
 
-async function handleCasterRegistration(interaction) {
-  const steamId = interaction.fields.getTextInputValue("caster_steam_id");
-  const channelLink = interaction.fields.getTextInputValue(
-    "caster_channel_link"
-  );
-
-  if (!isValidSteamId(steamId)) {
-    await interaction.reply({
-      content: "Ошибка: SteamID должен содержать 17 цифр.",
-      ephemeral: true,
-    });
-    return;
+async function registerCaster(interaction) {
+  try {
+    const dm = await interaction.user.createDM();
+    const steamMsg = await ask(dm, "Введите ваш SteamID64 (17 цифр):", (m) =>
+      isValidSteamIdValue(m.content)
+    );
+    if (!steamMsg) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const steamId = steamMsg.content.trim();
+    const linkMsg = await ask(
+      dm,
+      "Введите ссылку на ваш канал:",
+      (m) => m.content.trim().length > 0
+    );
+    if (!linkMsg) {
+      await dm.send("Регистрация прервана.");
+      return;
+    }
+    const channelLink = linkMsg.content.trim();
+    const userId = interaction.user.id;
+    const member = interaction.guild.members.cache.get(userId);
+    const role = interaction.guild.roles.cache.find(
+      (r) => r.name === "Участник OCBT"
+    );
+    if (role && member) {
+      try {
+        await member.roles.add(role);
+      } catch {}
+    }
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("Новая заявка на кастера")
+      .addFields(
+        {
+          name: "SteamID",
+          value: `[${steamId}](https://steamcommunity.com/profiles/${steamId})`,
+        },
+        { name: "Ссылка на канал", value: channelLink },
+        { name: "Отправитель", value: `<@${userId}>` }
+      )
+      .setFooter({
+        text: `Отправлено: ${interaction.user.tag}`,
+        iconURL: interaction.user.displayAvatarURL(),
+      });
+    const logChannel = interaction.guild.channels.cache.get(
+      "1305214613985558639"
+    );
+    if (!logChannel) {
+      await dm.send(
+        "Ошибка: Канал логирования не найден. Регистрация отменена."
+      );
+      return;
+    }
+    await logChannel.send({ embeds: [embed] });
+    await dm.send("Ваша заявка успешно принята!");
+  } catch {
+    try {
+      await interaction.user.send(
+        "Произошла ошибка или истекло время ожидания. Регистрация прервана."
+      );
+    } catch {}
   }
-
-  const userId = interaction.user.id;
-  const member = interaction.guild.members.cache.get(userId);
-  const roleName = "Участник OCBT";
-  const role = interaction.guild.roles.cache.find((r) => r.name === roleName);
-
-  if (role && member) {
-    await member.roles.add(role).catch((error) => {
-      console.error(`Не удалось выдать роль: ${error.message}`);
-    });
-  }
-
-  const embed = new EmbedBuilder()
-    .setColor(0x0099ff)
-    .setTitle("Новая заявка на кастера")
-    .addFields(
-      {
-        name: "SteamID",
-        value: `[${steamId}](https://steamcommunity.com/profiles/${steamId})`,
-      },
-      { name: "Ссылка на канал", value: `[Перейти](${channelLink})` },
-      { name: "Отправитель", value: `<@${userId}>` }
-    )
-    .setFooter({
-      text: `Отправлено: ${interaction.user.tag}`,
-      iconURL: interaction.user.displayAvatarURL(),
-    });
-
-  const logChannelId = "1305214613985558639";
-  const logChannel = interaction.guild.channels.cache.get(logChannelId);
-
-  if (!logChannel) {
-    console.error(`Канал с ID ${logChannelId} не найден.`);
-    await interaction.reply({
-      content:
-        "Ошибка: Не удалось зарегистрировать кастера. Канал логирования отсутствует.",
-      ephemeral: true,
-    });
-    return;
-  }
-
-  await logChannel.send({ embeds: [embed] });
-
-  await interaction.reply({
-    content: "Ваша заявка на кастера успешно принята!",
-    ephemeral: true,
-  });
 }
 
 await client.login(process.env.CLIENT_TOKEN);
