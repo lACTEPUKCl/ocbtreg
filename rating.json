@@ -1,0 +1,231 @@
+{
+  "content": "# **'OCBT' Season 4**",
+  "tts": false,
+  "embeds": [
+    {
+      "id": 708305874,
+      "title": "РЕЙТИНГОВАЯ СИСТЕМА",
+      "description": "-------------------------------------------------------------------------------------",
+      "color": 16770827,
+      "footer": {
+        "text": "--------------------------------------------------------------------------------------------------"
+      },
+      "fields": [
+        {
+          "id": 70782106,
+          "name": "5thMR",
+          "value": "```Win:0\nLose:1\nScore:58```",
+          "inline": true
+        },
+        {
+          "id": 316360139,
+          "name": "5.45",
+          "value": "```Win:1\nLose:1\nScore:81```",
+          "inline": true
+        },
+        {
+          "id": 137825534,
+          "name": "ALPHA",
+          "value": "```Win:0\nLose:1\nScore:28```",
+          "inline": true
+        },
+        {
+          "id": 392085205,
+          "name": "DGR",
+          "value": "```Win:1\nLose:1\nScore:56```",
+          "inline": true
+        },
+        {
+          "id": 50390040,
+          "name": "FW",
+          "value": "```Win:5\nLose:1\nScore:307```",
+          "inline": true
+        },
+        {
+          "id": 463448776,
+          "name": "MDC",
+          "value": "```Win:0\nLose:1\nScore:39```",
+          "inline": true
+        },
+        {
+          "id": 422644918,
+          "name": "PBC",
+          "value": "```Win:1\nLose:2\nScore:24```",
+          "inline": true
+        },
+        {
+          "id": 152590261,
+          "name": "RIP",
+          "value": "```Win:4\nLose:1\nScore:162```",
+          "inline": true
+        },
+        {
+          "id": 389809269,
+          "name": "WT",
+          "value": "```Win:1\nLose:1\nScore:44```",
+          "inline": true
+        }
+      ]
+    },
+    {
+      "id": 832736190,
+      "description": "-------------------------------------------------------------------------------------",
+      "color": 16770827,
+      "footer": {
+        "text": "--------------------------------------------------------------------------------------------------"
+      },
+      "fields": [
+        {
+          "id": 551376020,
+          "name": "GRAVE",
+          "value": "```Win:0\nLose:1\nScore:0```",
+          "inline": true
+        },
+        {
+          "id": 717241160,
+          "name": "BW",
+          "value": "```Win:0\nLose:1\nScore:0```",
+          "inline": true
+        },
+        {
+          "id": 106959597,
+          "name": "LR",
+          "value": "```Win:1\nLose:1\nScore:38```",
+          "inline": true
+        },
+        {
+          "id": 435753317,
+          "name": "APACHE",
+          "value": "```Win:2\nLose:1\nScore:64```",
+          "inline": true
+        },
+        {
+          "id": 759752596,
+          "name": "OCO",
+          "value": "```Win:0\nLose:1\nScore:16```",
+          "inline": true
+        },
+        {
+          "id": 792258358,
+          "name": "SEALS",
+          "value": "```Win:0\nLose:1\nScore:6```",
+          "inline": true
+        },
+        {
+          "id": 876677014,
+          "name": "STRB",
+          "value": "```Win:4\nLose:0\nScore:215```",
+          "inline": true
+        },
+        {
+          "id": 113015676,
+          "name": "NR",
+          "value": "```Win:3\nLose:1\nScore:155```",
+          "inline": true
+        },
+        {
+          "id": 744317681,
+          "name": "KRESTS",
+          "value": "```Win:0\nLose:1\nScore:55```",
+          "inline": true
+        }
+      ]
+    },
+    {
+      "id": 343858597,
+      "description": "-------------------------------------------------------------------------------------",
+      "color": 16770827,
+      "footer": {
+        "text": "--------------------------------------------------------------------------------------------------"
+      },
+      "fields": [
+        {
+          "id": 732189818,
+          "name": "GGWP",
+          "value": "```Win:0\nLose:1\nScore:22```",
+          "inline": true
+        },
+        {
+          "id": 182380295,
+          "name": "DSHB",
+          "value": "```Win:6\nLose:5\nScore:204```",
+          "inline": true
+        },
+        {
+          "id": 438379633,
+          "name": "GROM",
+          "value": "```Win:0\nLose:1\nScore:0```",
+          "inline": true
+        },
+        {
+          "id": 218170572,
+          "name": "SKAT",
+          "value": "```Win:0\nLose:1\nScore:3```",
+          "inline": true
+        },
+        {
+          "id": 98393484,
+          "name": "SYNDICATE",
+          "value": "```Win:0\nLose:1\nScore:17```",
+          "inline": true
+        },
+        {
+          "id": 905897710,
+          "name": "RED CLAN",
+          "value": "```Win:0\nLose:3\nScore:68```",
+          "inline": true
+        },
+        {
+          "id": 464073006,
+          "name": "RISE",
+          "value": "```Win:0\nLose:1\nScore:13``` ",
+          "inline": true
+        },
+        {
+          "id": 104700272,
+          "name": "BORN",
+          "value": "```Win:1\nLose:1\nScore:53```",
+          "inline": true
+        },
+        {
+          "id": 258393785,
+          "name": "0-82-W",
+          "value": "```Win:1\nLose:1\nScore:48```",
+          "inline": true
+        }
+      ]
+    },
+    {
+      "id": 637125113,
+      "description": "-------------------------------------------------------------------------------------",
+      "color": 16770827,
+      "footer": {
+        "text": "--------------------------------------------------------------------------------------------------"
+      },
+      "fields": [
+        {
+          "id": 262711026,
+          "name": "BNB",
+          "value": "```Win:0\nLose:1\nScore:0```",
+          "inline": true
+        },
+        {
+          "id": 853486445,
+          "name": "IMP",
+          "value": "```Win:0\nLose:1\nScore:0```",
+          "inline": true
+        },
+        {
+          "id": 405200957,
+          "name": "EVO",
+          "value": "```Win:0\nLose:1\nScore:8```",
+          "inline": true
+        }
+      ]
+    }
+  ],
+  "components": [],
+  "actions": {},
+  "flags": 0,
+  "username": "SkyNet"
+}
