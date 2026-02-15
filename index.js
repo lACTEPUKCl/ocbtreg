@@ -1,3 +1,6 @@
+// index.js (Node 18+, ESM)
+// npm i discord.js https-proxy-agent undici@5 dotenv
+
 import {
   Client,
   GatewayIntentBits,
@@ -10,26 +13,34 @@ import {
   Collection,
   Events,
 } from "discord.js";
+
 import getCommands from "./commands/getCommands.js";
 import { config } from "dotenv";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-config();
-import { HttpsProxyAgent } from "https-proxy-agent";
-import { ProxyAgent, setGlobalDispatcher } from "undici";
 
-const proxyUrl = process.env.DISCORD_PROXY_URL;
-let wsProxyAgent = null;
+import { HttpsProxyAgent } from "https-proxy-agent";
+import { ProxyAgent } from "undici";
+
+config();
+
+// =====================================================================
+// PROXY (REST + WS)
+// =====================================================================
+
+const proxyUrl = process.env.DISCORD_PROXY_URL?.trim() || "";
+
+const restAgent = proxyUrl ? new ProxyAgent(proxyUrl) : null;
+const wsAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : null;
 
 if (proxyUrl) {
   console.log("[BOT] Using Discord proxy:", proxyUrl);
-
-  const restProxy = new ProxyAgent(proxyUrl);
-  setGlobalDispatcher(restProxy);
-
-  wsProxyAgent = new HttpsProxyAgent(proxyUrl);
+} else {
+  console.log("[BOT] Discord proxy: disabled (DISCORD_PROXY_URL is empty)");
 }
+
+// =====================================================================
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +83,8 @@ async function loadEmbedsFromTemplate(relJsonPath) {
 }
 
 // =====================================================================
+// CLIENT
+// =====================================================================
 
 const client = new Client({
   intents: [
@@ -81,6 +94,12 @@ const client = new Client({
     GatewayIntentBits.DirectMessages,
   ],
   partials: [Partials.Channel],
+
+  // ✅ REST через прокси (если задан)
+  ...(restAgent ? { rest: { agent: restAgent } } : {}),
+
+  // ✅ WS/Gateway через прокси (как в твоём другом боте)
+  ...(wsAgent ? { ws: { agent: wsAgent } } : {}),
 });
 
 client.commands = new Collection();
@@ -94,12 +113,16 @@ for (const command of commands) {
 const RATING_CHANNEL_ID =
   process.env.RATING_CHANNEL_ID || "1305214160983953458";
 
-// ✅ NEW: куда отправлять анкеты команд (кланов)
+// куда отправлять анкеты команд (кланов)
 const TEAM_FORMS_CHANNEL_ID = "1305214571912630322";
 
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
+
+// =====================================================================
+// MESSAGE SETUP
+// =====================================================================
 
 client.on("messageCreate", async (message) => {
   if (
@@ -221,6 +244,10 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+// =====================================================================
+// SLASH COMMANDS
+// =====================================================================
+
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -231,29 +258,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await command.execute(interaction);
   } catch (error) {
     console.error(error);
+    const payload = {
+      content: "Произошла ошибка при выполнении команды!",
+      ephemeral: true,
+    };
     if (interaction.deferred || interaction.replied) {
-      await interaction.followUp({
-        content: "Произошла ошибка при выполнении команды!",
-        ephemeral: true,
-      });
+      await interaction.followUp(payload);
     } else {
-      await interaction.reply({
-        content: "Произошла ошибка при выполнении команды!",
-        ephemeral: true,
-      });
+      await interaction.reply(payload);
     }
   }
 });
 
 // =====================================================================
-// Кнопки / модалки
+// BUTTONS
 // =====================================================================
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
 
   try {
-    // подтверждаем interaction сразу
     if (!interaction.deferred && !interaction.replied) {
       await interaction.deferReply({ ephemeral: true });
     }
@@ -273,9 +297,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply("Произошла ошибка. Попробуй ещё раз.");
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 });
 
@@ -316,9 +338,7 @@ async function safeEditReply(interaction, text) {
     } else {
       await interaction.reply({ content: text, ephemeral: true });
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
 async function registerTeam(interaction) {
@@ -344,7 +364,6 @@ async function registerTeam(interaction) {
     if (!nameAns) return safeEditReply(interaction, "Отменено.");
     const teamName = nameAns.content;
 
-    // ✅ ЛОГО: можно ссылкой ИЛИ картинкой (вложение)
     const logoAns = await ask(
       dm,
       "Отправьте логотип (картинкой в ЛС или ссылкой):",
@@ -385,9 +404,7 @@ async function registerTeam(interaction) {
     if (!contactAns) return safeEditReply(interaction, "Отменено.");
     const contact = contactAns.content;
 
-    // ✅ отправляем анкету в нужный канал
     const channel = await client.channels.fetch(TEAM_FORMS_CHANNEL_ID);
-
     const steamProfileUrl = `https://steamcommunity.com/profiles/${steamId64}`;
 
     const embed = new EmbedBuilder()
@@ -396,14 +413,11 @@ async function registerTeam(interaction) {
       .addFields(
         { name: "Название команды", value: teamName, inline: true },
         { name: "Представитель", value: repNick, inline: true },
-
-        // ✅ SteamId64 как кликабельная ссылка
         {
           name: "SteamId64",
           value: `[${steamId64}](${steamProfileUrl})`,
           inline: true,
         },
-
         { name: "Контактное лицо", value: contact, inline: false },
         {
           name: "Отправитель",
@@ -417,10 +431,7 @@ async function registerTeam(interaction) {
 
     await channel.send({ embeds: [embed] });
 
-    // ✅ сообщение в ЛС после успешной отправки
     await dm.send("Клан зарегистрирован ✅");
-
-    // ✅ ответ на кнопку
     await safeEditReply(interaction, "Заявка отправлена ✅");
   } catch (e) {
     console.error(e);
@@ -444,31 +455,25 @@ async function registerCaster(interaction) {
     const steamIdMsg = await ask(
       dm,
       "Введите ваш SteamID64:",
-      (v) => /^\d{17}$/.test(v) || "SteamID64 должен быть 17 цифр.",
+      ({ content }) =>
+        /^\d{17}$/.test(content) || "SteamID64 должен быть 17 цифр.",
     );
-    if (!steamIdMsg) {
-      await safeEditReply(interaction, "Отменено.");
-      return;
-    }
+    if (!steamIdMsg) return safeEditReply(interaction, "Отменено.");
 
     const channelLinkMsg = await ask(
       dm,
       "Отправьте ссылку на ваш канал:",
-      (v) => v.length > 0 || "Ссылка не может быть пустой.",
+      ({ content }) => content.length > 0 || "Ссылка не может быть пустой.",
     );
-    if (!channelLinkMsg) {
-      await safeEditReply(interaction, "Отменено.");
-      return;
-    }
+    if (!channelLinkMsg) return safeEditReply(interaction, "Отменено.");
 
-    // кастеров оставляем как было (в старый канал рейтинга/общий)
-    const channel = await client.channels.fetch("1305214160983953458");
+    const channel = await client.channels.fetch(RATING_CHANNEL_ID);
 
     const embed = new EmbedBuilder()
       .setTitle("☑️ Заявка на кастера")
       .addFields(
-        { name: "SteamID64", value: steamIdMsg, inline: false },
-        { name: "Канал", value: channelLinkMsg, inline: false },
+        { name: "SteamID64", value: steamIdMsg.content, inline: false },
+        { name: "Канал", value: channelLinkMsg.content, inline: false },
         {
           name: "От кого (Discord)",
           value: `${interaction.user.tag} (${interaction.user.id})`,
@@ -486,5 +491,7 @@ async function registerCaster(interaction) {
     await safeEditReply(interaction, "Ошибка при подаче заявки на кастера.");
   }
 }
+
+// =====================================================================
 
 client.login(process.env.CLIENT_TOKEN);
