@@ -98,7 +98,7 @@ const client = new Client({
   // ✅ REST через прокси (если задан)
   ...(restAgent ? { rest: { agent: restAgent } } : {}),
 
-  // ✅ WS/Gateway через прокси (как в твоём другом боте)
+  // ✅ WS/Gateway через прокси
   ...(wsAgent ? { ws: { agent: wsAgent } } : {}),
 });
 
@@ -115,6 +115,10 @@ const RATING_CHANNEL_ID =
 
 // куда отправлять анкеты команд (кланов)
 const TEAM_FORMS_CHANNEL_ID = "1305214571912630322";
+
+// anti-double-run locks
+const activeTeamRegs = new Set(); // userId
+const activeCasterRegs = new Set(); // userId
 
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -258,10 +262,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await command.execute(interaction);
   } catch (error) {
     console.error(error);
+
+    // ⚠️ ephemeral deprecated -> use flags (64)
     const payload = {
       content: "Произошла ошибка при выполнении команды!",
-      ephemeral: true,
+      flags: 64,
     };
+
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(payload);
     } else {
@@ -278,8 +285,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
 
   try {
+    // ⚠️ ephemeral deprecated -> use flags (64)
     if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: 64 });
     }
 
     if (interaction.customId === "register_team") {
@@ -301,12 +309,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-async function ask(dm, question, validate, attempts = 3) {
+// =====================================================================
+// HELPERS
+// =====================================================================
+
+async function ask(dm, userId, question, validate, attempts = 3) {
   while (attempts > 0) {
     await dm.send(question);
 
     try {
       const collected = await dm.awaitMessages({
+        filter: (m) => m.author?.id === userId, // ✅ важно: ловим только пользователя
         max: 1,
         time: 120000,
         errors: ["time"],
@@ -336,12 +349,40 @@ async function safeEditReply(interaction, text) {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content: text });
     } else {
-      await interaction.reply({ content: text, ephemeral: true });
+      await interaction.reply({ content: text, flags: 64 });
     }
   } catch {}
 }
 
+function isValidHttpUrl(s) {
+  return /^https?:\/\/\S+$/i.test(String(s || "").trim());
+}
+
+function isLikelyImageAttachment(att) {
+  if (!att) return false;
+  const ct = att.contentType || "";
+  if (ct.startsWith("image/")) return true;
+  const name = att.name || "";
+  return /\.(png|jpe?g|gif|webp)$/i.test(name);
+}
+
+// =====================================================================
+// REG TEAM
+// =====================================================================
+
 async function registerTeam(interaction) {
+  const uid = interaction.user.id;
+
+  if (activeTeamRegs.has(uid)) {
+    await safeEditReply(
+      interaction,
+      "Регистрация уже запущена. Проверь ЛС и ответь на вопросы там.",
+    );
+    return;
+  }
+
+  activeTeamRegs.add(uid);
+
   try {
     let dm;
     try {
@@ -356,31 +397,36 @@ async function registerTeam(interaction) {
 
     const nameAns = await ask(
       dm,
+      uid,
       "Введите название команды (не более 50 символов):",
       ({ content }) =>
         (content.length > 0 && content.length <= 50) ||
-        "Название слишком длинное.",
+        "Название должно быть 1–50 символов.",
     );
     if (!nameAns) return safeEditReply(interaction, "Отменено.");
     const teamName = nameAns.content;
 
     const logoAns = await ask(
       dm,
-      "Отправьте логотип (картинкой в ЛС или ссылкой):",
+      uid,
+      "Отправьте логотип (картинкой в ЛС или ссылкой на картинку):",
       ({ content, msg }) => {
-        const hasAttachment = (msg?.attachments?.size ?? 0) > 0;
-        const hasText = content.length > 0;
-        if (hasAttachment || hasText) return true;
-        return "Логотип не может быть пустым. Пришли картинку или ссылку.";
+        const att = msg?.attachments?.first();
+        const okAtt = isLikelyImageAttachment(att);
+        const okUrl = isValidHttpUrl(content);
+        if (okAtt || okUrl) return true;
+        return "Пришли картинку (файлом) или ссылку http(s):// на картинку.";
       },
     );
     if (!logoAns) return safeEditReply(interaction, "Отменено.");
 
+    const att = logoAns.msg?.attachments?.first();
     const logoUrl =
-      logoAns.msg?.attachments?.first()?.url || logoAns.content || null;
+      att?.url || (isValidHttpUrl(logoAns.content) ? logoAns.content : null);
 
     const repAns = await ask(
       dm,
+      uid,
       "Введите представителя команды (ник):",
       ({ content }) => content.length > 0 || "Не может быть пустым.",
     );
@@ -389,7 +435,8 @@ async function registerTeam(interaction) {
 
     const steamAns = await ask(
       dm,
-      "Введите SteamID64 представителя:",
+      uid,
+      "Введите SteamID64 представителя (17 цифр):",
       ({ content }) =>
         /^\d{17}$/.test(content) || "SteamID64 должен быть 17 цифр.",
     );
@@ -398,7 +445,8 @@ async function registerTeam(interaction) {
 
     const contactAns = await ask(
       dm,
-      "Введите контактное лицо (Discord/ник/контакт):",
+      uid,
+      "Введите контакт (Discord/Telegram/ссылка) для связи:",
       ({ content }) => content.length > 0 || "Не может быть пустым.",
     );
     if (!contactAns) return safeEditReply(interaction, "Отменено.");
@@ -408,24 +456,20 @@ async function registerTeam(interaction) {
     const steamProfileUrl = `https://steamcommunity.com/profiles/${steamId64}`;
 
     const embed = new EmbedBuilder()
-      .setTitle("Подтверждение регистрации команды")
+      .setTitle("✅ Подтверждение регистрации команды")
       .setColor(0x5865f2)
       .addFields(
         { name: "Название команды", value: teamName, inline: true },
         { name: "Представитель", value: repNick, inline: true },
         {
-          name: "SteamId64",
+          name: "SteamID64",
           value: `[${steamId64}](${steamProfileUrl})`,
           inline: true,
         },
-        { name: "Контактное лицо", value: contact, inline: false },
-        {
-          name: "Отправитель",
-          value: `<@${interaction.user.id}>`,
-          inline: false,
-        },
+        { name: "Контакт", value: contact, inline: false },
+        { name: "Отправитель", value: `<@${uid}>`, inline: false },
       )
-      .setFooter({ text: `Отправлено: ${repNick}` });
+      .setFooter({ text: `Отправлено: ${interaction.user.tag}` });
 
     if (logoUrl) embed.setImage(logoUrl);
 
@@ -436,10 +480,28 @@ async function registerTeam(interaction) {
   } catch (e) {
     console.error(e);
     await safeEditReply(interaction, "Ошибка при регистрации команды.");
+  } finally {
+    activeTeamRegs.delete(uid);
   }
 }
 
+// =====================================================================
+// REG CASTER
+// =====================================================================
+
 async function registerCaster(interaction) {
+  const uid = interaction.user.id;
+
+  if (activeCasterRegs.has(uid)) {
+    await safeEditReply(
+      interaction,
+      "Заявка уже запущена. Проверь ЛС и ответь на вопросы там.",
+    );
+    return;
+  }
+
+  activeCasterRegs.add(uid);
+
   try {
     let dm;
     try {
@@ -454,7 +516,8 @@ async function registerCaster(interaction) {
 
     const steamIdMsg = await ask(
       dm,
-      "Введите ваш SteamID64:",
+      uid,
+      "Введите ваш SteamID64 (17 цифр):",
       ({ content }) =>
         /^\d{17}$/.test(content) || "SteamID64 должен быть 17 цифр.",
     );
@@ -462,21 +525,30 @@ async function registerCaster(interaction) {
 
     const channelLinkMsg = await ask(
       dm,
+      uid,
       "Отправьте ссылку на ваш канал:",
-      ({ content }) => content.length > 0 || "Ссылка не может быть пустой.",
+      ({ content }) =>
+        (content.length > 0 && isValidHttpUrl(content)) ||
+        "Ссылка должна начинаться с http(s)://",
     );
     if (!channelLinkMsg) return safeEditReply(interaction, "Отменено.");
 
     const channel = await client.channels.fetch(RATING_CHANNEL_ID);
 
+    const steamProfileUrl = `https://steamcommunity.com/profiles/${steamIdMsg.content}`;
+
     const embed = new EmbedBuilder()
       .setTitle("☑️ Заявка на кастера")
       .addFields(
-        { name: "SteamID64", value: steamIdMsg.content, inline: false },
+        {
+          name: "SteamID64",
+          value: `[${steamIdMsg.content}](${steamProfileUrl})`,
+          inline: false,
+        },
         { name: "Канал", value: channelLinkMsg.content, inline: false },
         {
           name: "От кого (Discord)",
-          value: `${interaction.user.tag} (${interaction.user.id})`,
+          value: `${interaction.user.tag} (${uid})`,
           inline: false,
         },
       )
@@ -489,6 +561,8 @@ async function registerCaster(interaction) {
   } catch (e) {
     console.error(e);
     await safeEditReply(interaction, "Ошибка при подаче заявки на кастера.");
+  } finally {
+    activeCasterRegs.delete(uid);
   }
 }
 
