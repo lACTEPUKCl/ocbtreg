@@ -113,6 +113,9 @@ for (const command of commands) {
 const RATING_CHANNEL_ID =
   process.env.RATING_CHANNEL_ID || "1305214160983953458";
 
+const CASTER_FORMS_CHANNEL_ID =
+  process.env.CASTER_FORMS_CHANNEL_ID || "1305214613985558639";
+
 // куда отправлять анкеты команд (кланов)
 const TEAM_FORMS_CHANNEL_ID = "1305214571912630322";
 
@@ -533,7 +536,7 @@ async function registerCaster(interaction) {
     );
     if (!channelLinkMsg) return safeEditReply(interaction, "Отменено.");
 
-    const channel = await client.channels.fetch(RATING_CHANNEL_ID);
+    const channel = await client.channels.fetch(CASTER_FORMS_CHANNEL_ID);
 
     const steamProfileUrl = `https://steamcommunity.com/profiles/${steamIdMsg.content}`;
 
